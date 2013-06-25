@@ -1,0 +1,13 @@
+{
+  "name": "psi-sg",
+  "version": "0.0.1",
+  "description": "PSI SG",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-connect": "~0.3.0"
+ 	},
+  "author": "Lim Chee Aun",
+  "license": "MIT"
+}

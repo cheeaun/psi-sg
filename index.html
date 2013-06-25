@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PSI SG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon-precomposed" href="icon.png">
+<link rel="shortcut icon" href="favicon.png">
+<style>
+html, body{
+  margin: 0;
+  padding: 0;
+  font-family: HelveticaNeue-Thin, 'helvetica neue thin', 'helvetica neue', helvetica, arial, sans-serif;
+  text-align: center;
+  font-weight: 300;
+  overflow: hidden;
+  height: 100%;
+  -webkit-transition: all .3s;
+  transition: all .3s;
+  	-webkit-text-size-adjust: none;
+}
+
+body.night{
+  color: #fff;
+  background-color: #000;
+}
+
+a{
+  color: inherit;
+}
+
+#psi{
+  font-family: HelveticaNeue-UltraLight, 'helvetica neue ultralight', 'helvetica neue', helvetica, arial, sans-serif;
+  font-weight: 100;
+  display: inline-block;
+  pointer-events: none;
+  -moz-user-select: none;
+}
+
+#pm25{
+  font-weight: bold;
+}
+
+footer{
+  opacity: .5;
+  display: block;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  bottom: .5em;
+  text-align: center;
+  font-size: 80%;
+}
+</style>
+</head>
+<body>
+<div id="psi">&hellip;</div>
+<footer><span id="pm25"></span> &middot; <a href="#" id="refresh">Refresh</a> &middot; <a href="http://www.haze.gov.sg/" target="_blank">haze.gov.sg</a> &middot; <a href="https://github.com/cheeaun/psi-sg" target="_blank">GitHub</a></footer>
+<script>
+if (localStorage.nightMode) document.body.className = 'night';
+
+var fitText = function(el){
+  var max = 0.9; // 90%
+  var w = window.innerWidth;
+  var h = window.innerHeight;
+
+  // Reset first
+  el.style.transform = '';
+  el.style.webkitTransform = '';
+
+  // Grab the size
+  var tw = el.offsetWidth;
+  var th = el.offsetHeight;
+
+  var scale = w/tw*max;
+  if (w>h) scale = h/th*max;
+
+  var transform = 'translateY(' + (h/2.5) + 'px) scale(' + scale + ')';
+  el.style.transform = transform;
+  el.style.webkitTransform = transform;
+};
+
+var $psi = document.getElementById('psi');
+var $pm25 = document.getElementById('pm25');
+var $refresh = document.getElementById('refresh');
+
+var cacheTime = function(){
+  var date = new Date();
+  return date.getDate() + date.getMonth() + date.getYear() + date.getHours();
+};
+
+var loadPSI = function(){
+  var r = new XMLHttpRequest();
+  r.open('GET', "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Fapp2.nea.gov.sg%2Fhome-lite%2Fpsi-lite%22%20and%20xpath%3D%22descendant-or-self%3A%3A*%5B%40id%20%3D%20'main'%5D%2Fdescendant%3A%3A*%5Bcontains(concat('%20'%2C%20normalize-space(%40class)%2C%20'%20')%2C%20'%20content%20')%5D%2Fdescendant%3A%3Atable%2Fdescendant%3A%3Atd%2Fdescendant%3A%3Astrong%5B%40style%5D%22&format=json&_maxage=900&_=" + cacheTime(), true);
+  r.onload = function(){
+    var text = this.responseText;
+    try {
+      var data = JSON.parse(text);
+      var val = data.query.results.strong.content;
+      $psi.innerHTML = val;
+      fitText($psi);
+
+      setTimeout(loadPSI, 900*1000); // 900 seconds
+    } catch (e){
+      alert('Unable to fetch PSI. Reload now.');
+      location.reload();
+    }
+  };
+  r.send();
+};
+loadPSI();
+
+var loadPM25 = function(){
+  var r = new XMLHttpRequest();
+  r.open('GET', "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Fapp2.nea.gov.sg%2Fhome-lite%2Fpsi-lite%2Fpollutant-concentration%22%20and%20xpath%3D%22descendant-or-self%3A%3Atable%5Bcontains(concat('%20'%2C%20normalize-space(%40class)%2C%20'%20')%2C%20'%20text_psinormal%20')%5D%2Fdescendant%3A%3Atr%2F*%5Bname()%20%3D%20'td'%20and%20(position()%20%3D%20last())%5D%22&format=json&_maxage=900&_=" + cacheTime(), true);
+  r.onload = function(){
+    var text = this.responseText;
+    try {
+      var data = JSON.parse(text);
+      var results = data.query.results.td.map(function(t){
+        return t.p.trim();
+      });
+      var max = Math.max.apply(Math, results);
+      var min = Math.min.apply(Math, results);
+
+      var val = '';
+      if (max == min){
+        val = max;
+      } else {
+        val = min + '-' + max;
+      }
+      $pm25.innerHTML = val + 'µg/m<sup>3</sup>';
+
+      setTimeout(loadPM25, 900*1000); // 900 seconds
+    } catch (e){
+      alert('Unable to fetch PM2.5. Reload now.');
+      location.reload();
+    }
+  };
+  r.send();
+}
+loadPM25();
+
+$refresh.onclick = function(e){
+  e.preventDefault();
+  loadPSI();
+  loadPM25();
+};
+
+window.onresize = function(){
+  fitText($psi);
+};
+
+document.ondblclick = window.ongesturestart = function(){
+  document.body.classList.toggle('night');
+  localStorage.nightMode = document.body.className == 'night' ? 1 : '';
+};
+
+// Disable touches
+window.ontouchmove = function(e){
+  e.preventDefault();
+};
+</script>
+</body>
+</html>
