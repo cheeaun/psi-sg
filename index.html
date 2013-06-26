@@ -87,8 +87,7 @@ var $pm25 = document.getElementById('pm25');
 var $refresh = document.getElementById('refresh');
 
 var cacheTime = function(){
-  var date = new Date();
-  return date.getDate() + date.getMonth() + date.getYear() + date.getHours();
+  return +new Date();
 };
 
 var loadPSI = function(){
