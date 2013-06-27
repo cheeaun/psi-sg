@@ -109,7 +109,7 @@ var loadPSI = function(){
   };
   r.send();
 };
-setTimeout(loadPSI, 500);
+setTimeout(loadPSI, 1000);
 
 var loadPM25 = function(){
   var r = new XMLHttpRequest();
@@ -140,7 +140,7 @@ var loadPM25 = function(){
   };
   r.send();
 }
-setTimeout(loadPM25, 500);
+setTimeout(loadPM25, 1000);
 
 $refresh.onclick = function(e){
   e.preventDefault();
