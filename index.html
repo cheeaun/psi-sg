@@ -19,7 +19,7 @@ html, body{
   height: 100%;
   -webkit-transition: all .3s;
   transition: all .3s;
-  	-webkit-text-size-adjust: none;
+  -webkit-text-size-adjust: none;
 }
 
 body.night{
@@ -37,10 +37,6 @@ a{
   display: inline-block;
   pointer-events: none;
   -moz-user-select: none;
-}
-
-#pm25{
-  font-weight: bold;
 }
 
 footer{
@@ -66,7 +62,7 @@ footer{
 </head>
 <body>
 <div id="psi">Loading&hellip;</div>
-<footer><span id="pm25"></span> &middot; <a href="#" id="refresh">Refresh</a> &middot; <a href="http://www.haze.gov.sg/" target="_blank">haze.gov.sg</a> &middot; <a href="https://github.com/cheeaun/psi-sg" target="_blank">GitHub</a></footer>
+<footer><a href="#" id="refresh">Refresh</a> &middot; <a href="http://www.haze.gov.sg/" target="_blank">haze.gov.sg</a> &middot; <a href="https://github.com/cheeaun/psi-sg" target="_blank">GitHub</a></footer>
 <script>
 if (localStorage.nightMode) document.body.className = 'night';
 
@@ -92,7 +88,6 @@ var fitText = function(el){
 };
 
 var $psi = document.getElementById('psi');
-var $pm25 = document.getElementById('pm25');
 var $refresh = document.getElementById('refresh');
 
 var cacheTime = function(){
@@ -101,12 +96,10 @@ var cacheTime = function(){
 
 var loadPSI = function(){
   var r = new XMLHttpRequest();
-  r.open('GET', "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Fapp2.nea.gov.sg%2Fhome-lite%2Fpsi-lite%22%20and%20xpath%3D%22descendant-or-self%3A%3A*%5B%40id%20%3D%20'main'%5D%2Fdescendant%3A%3A*%5Bcontains(concat('%20'%2C%20normalize-space(%40class)%2C%20'%20')%2C%20'%20content%20')%5D%2Fdescendant%3A%3Atable%2Fdescendant%3A%3Atd%2Fdescendant%3A%3Astrong%5B%40style%5D%22&format=json&_maxage=900&_=" + cacheTime(), true);
+  r.open('GET', 'http://www.nea.gov.sg/api/WebAPI/?dataset=psi_update&keyref=781CF461BB6606AD0308169EFFAA8231CCC0BE0A547FEEC6', true);
   r.onload = function(){
-    var text = this.responseText;
     try {
-      var data = JSON.parse(text);
-      var val = data.query.results.strong.content;
+      var val = Array.prototype.slice.call(this.responseXML.querySelectorAll('region')).filter(function(node){ return node.getElementsByTagName('id')[0].innerHTML.trim().toLowerCase() == 'nrs' })[0].querySelector('reading[type="NPSI_PM25_3HR"]').getAttribute('value');
       $psi.innerHTML = val;
       fitText($psi);
 
@@ -120,41 +113,9 @@ var loadPSI = function(){
 };
 setTimeout(loadPSI, 1000);
 
-var loadPM25 = function(){
-  var r = new XMLHttpRequest();
-  r.open('GET', "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Fapp2.nea.gov.sg%2Fhome-lite%2Fpsi-lite%2Fpollutant-concentration%22%20and%20xpath%3D%22descendant-or-self%3A%3Atable%5Bcontains(concat('%20'%2C%20normalize-space(%40class)%2C%20'%20')%2C%20'%20text_psinormal%20')%5D%2Fdescendant%3A%3Atr%2F*%5Bname()%20%3D%20'td'%20and%20(position()%20%3D%20last())%5D%22&format=json&_maxage=900&_=" + cacheTime(), true);
-  r.onload = function(){
-    var text = this.responseText;
-    try {
-      var data = JSON.parse(text);
-      var results = data.query.results.td.map(function(t){
-        return t.p.trim();
-      });
-      var max = Math.max.apply(Math, results);
-      var min = Math.min.apply(Math, results);
-
-      var val = '';
-      if (max == min){
-        val = max;
-      } else {
-        val = min + '-' + max;
-      }
-      $pm25.innerHTML = val + 'µg/m<sup>3</sup>';
-
-      setTimeout(loadPM25, 900*1000); // 900 seconds
-    } catch (e){
-      alert('Unable to fetch PM2.5. Reload now.');
-      location.reload();
-    }
-  };
-  r.send();
-}
-setTimeout(loadPM25, 1000);
-
 $refresh.onclick = function(e){
   e.preventDefault();
   loadPSI();
-  loadPM25();
 };
 
 window.onresize = function(){
