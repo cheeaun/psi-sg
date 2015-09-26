@@ -96,7 +96,7 @@ var cacheTime = function(){
 
 var loadPSI = function(){
   var r = new XMLHttpRequest();
-  r.open('GET', 'https://www.nea.gov.sg/api/WebAPI/?dataset=psi_update&keyref=781CF461BB6606AD0308169EFFAA8231CCC0BE0A547FEEC6', true);
+  r.open('GET', '//www.nea.gov.sg/api/WebAPI/?dataset=psi_update&keyref=781CF461BB6606AD0308169EFFAA8231CCC0BE0A547FEEC6', true);
   r.onload = function(){
     try {
       var val = Array.prototype.slice.call(this.responseXML.querySelectorAll('region')).filter(function(node){ return node.getElementsByTagName('id')[0].textContent.trim().toLowerCase() == 'nrs' })[0].querySelector('reading[type="NPSI_PM25_3HR"]').getAttribute('value');
